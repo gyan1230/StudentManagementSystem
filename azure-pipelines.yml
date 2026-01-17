@@ -1,0 +1,52 @@
+# ASP.NET
+# Build and test ASP.NET projects.
+# Add steps that publish symbols, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
+
+trigger:
+- none
+
+pool:
+  name: self-hosted
+
+stages:
+# =========================
+# Stage 2: OWASP Dependency-Check
+# =========================
+- stage: DependencyCheck
+  displayName: 'OWASP Dependency-Check Stage'
+  jobs:
+  - job: DependencyCheckJob
+    displayName: 'Dependency-Check Job'
+    pool:
+      name: Default
+    steps:
+    - checkout: self
+
+    - task: Bash@3
+      displayName: 'Download OWASP Dependency-Check'
+      inputs:
+        targetType: 'inline'
+        script: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.7/dependency-check-9.0.7-release.zip
+          unzip dependency-check-9.0.7-release.zip
+          chmod +x dependency-check/bin/dependency-check.sh
+
+    - task: Bash@3
+      displayName: 'Run OWASP Dependency-Check Scan'
+      inputs:
+        targetType: 'inline'
+        script: |
+          dependency-check/bin/dependency-check.sh \
+            --scan $(System.DefaultWorkingDirectory) \
+            --format HTML \
+            --out $(Build.ArtifactStagingDirectory) \
+            --failOnCVSS 7 \
+            --nvdApiKey $(NVD_API_KEY)
+
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Dependency-Check Report'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'DependencyCheckReport'
