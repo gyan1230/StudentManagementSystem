@@ -19,7 +19,7 @@ stages:
   - job: DependencyCheckJob
     displayName: 'Dependency-Check Job'
     pool:
-      name: Default
+      name: self-hosted
     steps:
     - checkout: self
 
